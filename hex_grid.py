@@ -3,8 +3,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 
 from hex_core import HexCoord
+
+
+class Terrain(str, Enum):
+    """Terrain types that affect movement cost and gameplay."""
+
+    PLAINS = "plains"
+    MOUNTAIN = "mountain"
+    FERTILE = "fertile"
 
 
 @dataclass
@@ -12,8 +21,7 @@ class HexTile:
     """Data stored at a single hex position."""
 
     coord: HexCoord
-
-    # Extend later with terrain, ownership, units, etc.
+    terrain: Terrain = Terrain.PLAINS
 
 
 class HexGrid:
@@ -61,6 +69,18 @@ class HexGrid:
             for n in coord.neighbors()
             if n in self._tiles
         ]
+
+    def find_path(
+        self,
+        start: HexCoord,
+        goal: HexCoord,
+        cost_fn=None,
+        passable_fn=None,
+    ):
+        """Find shortest path between two hexes using A*."""
+        from pathfinding import astar
+
+        return astar(self, start, goal, cost_fn, passable_fn)
 
     @property
     def tiles(self) -> list[HexTile]:

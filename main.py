@@ -1,23 +1,37 @@
-"""HexWar — demo: render a hex grid with doubled-width coordinates."""
+"""HexWar — demo: render a hex grid with A* pathfinding."""
+
+import random
 
 import pygame
 
 from hex_core import HexCoord, pixel_to_hex
-from hex_grid import HexGrid
+from hex_grid import HexGrid, Terrain
+from pathfinding import astar
 from renderer import BG_COLOR, HexRenderer
 
 SCREEN_W, SCREEN_H = 900, 700
 GRID_W, GRID_H = 8, 6
 HEX_SIZE = 36
+MOUNTAIN_RATIO = 0.15  # Fraction of tiles to make mountains
+
+
+def sprinkle_mountains(grid: HexGrid, ratio: float) -> None:
+    """Randomly assign mountain terrain to a fraction of tiles."""
+    tiles = grid.tiles
+    n_mountains = int(len(tiles) * ratio)
+    for tile in random.sample(tiles, n_mountains):
+        # HexTile is a mutable dataclass, so we can assign directly
+        tile.terrain = Terrain.MOUNTAIN
 
 
 def main() -> None:
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
-    pygame.display.set_caption("HexWar — Doubled Coordinates")
+    pygame.display.set_caption("HexWar — A* Pathfinding Demo")
     clock = pygame.time.Clock()
 
     grid = HexGrid(GRID_W, GRID_H)
+    sprinkle_mountains(grid, MOUNTAIN_RATIO)
 
     # Center the grid on screen
     origin_x = SCREEN_W / 2 - (GRID_W - 1) * HEX_SIZE * 0.866
@@ -25,6 +39,10 @@ def main() -> None:
     renderer = HexRenderer(screen, hex_size=HEX_SIZE, origin=(origin_x, origin_y))
 
     hovered: HexCoord | None = None
+    start: HexCoord | None = None
+    goal: HexCoord | None = None
+    path: tuple[HexCoord, ...] | tuple[()] = ()
+    path_cost: float = 0.0
     running = True
 
     while running:
@@ -33,6 +51,29 @@ def main() -> None:
                 running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                # Reset mountains and selection
+                for tile in grid:
+                    tile.terrain = Terrain.PLAINS
+                sprinkle_mountains(grid, MOUNTAIN_RATIO)
+                start = goal = None
+                path = ()
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if hovered is not None:
+                    if start is None:
+                        start = hovered
+                        goal = None
+                        path = ()
+                    elif goal is None:
+                        goal = hovered
+                        result = astar(grid, start, goal)
+                        path = result.path
+                        path_cost = result.cost
+                    else:
+                        # Reset: start new selection
+                        start = hovered
+                        goal = None
+                        path = ()
 
         # Find which hex the mouse is over
         mx, my = pygame.mouse.get_pos()
@@ -47,16 +88,40 @@ def main() -> None:
         screen.fill(BG_COLOR)
         renderer.draw_grid(grid, highlight=hovered, show_coords=True)
 
-        # Show hovered coord in top-left
+        # Draw path on top of the grid
+        if path:
+            renderer.draw_path(path, show_coords=True)
+
+        # HUD info
+        info_font = pygame.font.SysFont("consolas", 18)
+        lines: list[str] = []
+
         if hovered is not None:
-            info_font = pygame.font.SysFont("consolas", 18)
-            info = info_font.render(
+            tile = grid[hovered]
+            lines.append(
                 f"Hover: ({hovered.col}, {hovered.row})  "
-                f"Neighbors: {len(grid.neighbors_of(hovered))}",
-                True,
-                (220, 220, 220),
+                f"Terrain: {tile.terrain.value}"
             )
-            screen.blit(info, (12, 12))
+
+        if start is not None and goal is None:
+            lines.append(f"Start: ({start.col}, {start.row})  Click goal...")
+        elif start is not None and goal is not None:
+            if path:
+                lines.append(
+                    f"Path: ({start.col},{start.row}) -> ({goal.col},{goal.row})  "
+                    f"Steps: {len(path) - 1}  Cost: {path_cost:.1f}"
+                )
+            else:
+                lines.append("No path found!")
+            lines.append("Click to select new start")
+        else:
+            lines.append("Click a hex to set start")
+
+        lines.append("R = regenerate mountains")
+
+        for i, line in enumerate(lines):
+            surf = info_font.render(line, True, (220, 220, 220))
+            screen.blit(surf, (12, 12 + i * 24))
 
         pygame.display.flip()
         clock.tick(60)
