@@ -1,3 +1,38 @@
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment / secrets
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# ML artifacts
+*.pth
+*.pt
+*.h5
+wandb/
+runs/
+logs/
+checkpoints/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Claude Code memory
 memory/
