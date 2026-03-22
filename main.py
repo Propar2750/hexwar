@@ -1,27 +1,16 @@
 """HexWar — demo: render a hex grid with A* pathfinding."""
 
-import random
-
 import pygame
 
 from hex_core import HexCoord, pixel_to_hex
 from hex_grid import HexGrid, Terrain
+from map_generator import generate_terrain
 from pathfinding import astar
 from renderer import BG_COLOR, HexRenderer
 
-SCREEN_W, SCREEN_H = 900, 700
-GRID_W, GRID_H = 8, 6
-HEX_SIZE = 36
-MOUNTAIN_RATIO = 0.15  # Fraction of tiles to make mountains
-
-
-def sprinkle_mountains(grid: HexGrid, ratio: float) -> None:
-    """Randomly assign mountain terrain to a fraction of tiles."""
-    tiles = grid.tiles
-    n_mountains = int(len(tiles) * ratio)
-    for tile in random.sample(tiles, n_mountains):
-        # HexTile is a mutable dataclass, so we can assign directly
-        tile.terrain = Terrain.MOUNTAIN
+SCREEN_W, SCREEN_H = 1200, 900
+GRID_W, GRID_H = 30, 30
+HEX_SIZE = 16
 
 
 def main() -> None:
@@ -31,7 +20,7 @@ def main() -> None:
     clock = pygame.time.Clock()
 
     grid = HexGrid(GRID_W, GRID_H)
-    sprinkle_mountains(grid, MOUNTAIN_RATIO)
+    generate_terrain(grid, num_ranges=8, range_steps=12)
 
     # Center the grid on screen
     origin_x = SCREEN_W / 2 - (GRID_W - 1) * HEX_SIZE * 0.866
@@ -52,10 +41,8 @@ def main() -> None:
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-                # Reset mountains and selection
-                for tile in grid:
-                    tile.terrain = Terrain.PLAINS
-                sprinkle_mountains(grid, MOUNTAIN_RATIO)
+                # Regenerate terrain
+                generate_terrain(grid, num_ranges=8, range_steps=12)
                 start = goal = None
                 path = ()
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -86,11 +73,11 @@ def main() -> None:
 
         # Draw
         screen.fill(BG_COLOR)
-        renderer.draw_grid(grid, highlight=hovered, show_coords=True)
+        renderer.draw_grid(grid, highlight=hovered, show_coords=False)
 
         # Draw path on top of the grid
         if path:
-            renderer.draw_path(path, show_coords=True)
+            renderer.draw_path(path, show_coords=False)
 
         # HUD info
         info_font = pygame.font.SysFont("consolas", 18)
@@ -117,7 +104,7 @@ def main() -> None:
         else:
             lines.append("Click a hex to set start")
 
-        lines.append("R = regenerate mountains")
+        lines.append("R = regenerate terrain")
 
         for i, line in enumerate(lines):
             surf = info_font.render(line, True, (220, 220, 220))
