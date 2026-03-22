@@ -20,7 +20,7 @@ def main() -> None:
     clock = pygame.time.Clock()
 
     grid = HexGrid(GRID_W, GRID_H)
-    generate_terrain(grid, num_ranges=8, range_steps=12)
+    generate_terrain(grid)
 
     # Center the grid on screen
     origin_x = SCREEN_W / 2 - (GRID_W - 1) * HEX_SIZE * 0.866
@@ -42,7 +42,7 @@ def main() -> None:
                 running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:
                 # Regenerate terrain
-                generate_terrain(grid, num_ranges=8, range_steps=12)
+                generate_terrain(grid, num_ranges=8)
                 start = goal = None
                 path = ()
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:

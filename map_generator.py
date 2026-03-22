@@ -15,11 +15,14 @@ from hex_grid import HexGrid, Terrain
 
 # Defaults tuned via test_cellular_automata.py sweep
 DEFAULT_FERTILE_SEED_P = 0.45
-DEFAULT_CA_ITERATIONS = 6
+DEFAULT_CA_ITERATIONS = 5
 DEFAULT_CA_THRESHOLD = 4
-DEFAULT_NUM_RANGES = 5
-DEFAULT_RANGE_STEPS = 8
-DEFAULT_TURN_PROB = 0.3
+DEFAULT_NUM_RANGES = 12
+DEFAULT_MIN_RANGE_STEPS = 6
+DEFAULT_RANGE_END_PROB = 0.1
+DEFAULT_STRAIGHT_PROB = 0.32
+DEFAULT_SLIGHT_TURN_PROB = 0.28
+DEFAULT_HARD_TURN_PROB = 0.06
 
 
 def generate_terrain(
@@ -28,8 +31,11 @@ def generate_terrain(
     ca_iterations: int = DEFAULT_CA_ITERATIONS,
     ca_threshold: int = DEFAULT_CA_THRESHOLD,
     num_ranges: int = DEFAULT_NUM_RANGES,
-    range_steps: int = DEFAULT_RANGE_STEPS,
-    turn_prob: float = DEFAULT_TURN_PROB,
+    min_range_steps: int = DEFAULT_MIN_RANGE_STEPS,
+    range_end_prob: float = DEFAULT_RANGE_END_PROB,
+    straight_prob: float = DEFAULT_STRAIGHT_PROB,
+    slight_turn_prob: float = DEFAULT_SLIGHT_TURN_PROB,
+    hard_turn_prob: float = DEFAULT_HARD_TURN_PROB,
     seed: int | None = None,
 ) -> None:
     """Generate terrain on an existing grid in-place.
@@ -53,7 +59,10 @@ def generate_terrain(
             break
 
     # Step 3: mountain ranges via random walks
-    _generate_mountain_ranges(grid, num_ranges, range_steps, turn_prob, rng)
+    _generate_mountain_ranges(
+        grid, num_ranges, min_range_steps, range_end_prob,
+        straight_prob, slight_turn_prob, hard_turn_prob, rng,
+    )
 
 
 def _ca_step(grid: HexGrid, threshold: int) -> int:
@@ -77,16 +86,26 @@ def _ca_step(grid: HexGrid, threshold: int) -> int:
 def _generate_mountain_ranges(
     grid: HexGrid,
     num_ranges: int,
-    range_steps: int,
-    turn_prob: float,
+    min_steps: int,
+    end_prob: float,
+    straight_prob: float,
+    slight_turn_prob: float,
+    hard_turn_prob: float,
     rng: random.Random,
 ) -> None:
     """Carve mountain ranges as random walks across the grid.
 
     For each range: pick a random start tile, pick a random direction (0-5),
-    then walk range_steps tiles. At each step, continue in the same direction
-    with probability (1 - turn_prob), or turn +-1 direction with turn_prob.
+    then walk at least min_steps tiles. After the minimum, each additional
+    step has end_prob chance of ending the range. Direction changes are
+    weighted:
+        straight (0):    straight_prob  (0.32)
+        slight +-1:      slight_turn_prob each (0.24)
+        hard +-2:        hard_turn_prob each (0.10)
     """
+    turn_weights = [hard_turn_prob, slight_turn_prob, straight_prob, slight_turn_prob, hard_turn_prob]
+    turn_offsets = [-2, -1, 0, 1, 2]
+
     all_tiles = grid.tiles
     for _ in range(num_ranges):
         # Random starting point
@@ -94,15 +113,21 @@ def _generate_mountain_ranges(
         coord = start_tile.coord
         direction = rng.randint(0, 5)
 
-        for _ in range(range_steps):
+        step = 0
+        while True:
             tile = grid.get(coord)
             if tile is None:
                 break
             tile.terrain = Terrain.MOUNTAIN
+            step += 1
 
-            # Decide next direction: keep straight or turn +-1
-            if rng.random() < turn_prob:
-                direction = (direction + rng.choice([-1, 1])) % 6
+            # After minimum steps, chance to end each step
+            if step >= min_steps and rng.random() < end_prob:
+                break
+
+            # Weighted direction change
+            offset = rng.choices(turn_offsets, weights=turn_weights, k=1)[0]
+            direction = (direction + offset) % 6
 
             # Step in current direction
             dc, dr = DIRECTIONS[direction]
