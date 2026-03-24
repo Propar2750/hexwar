@@ -1,5 +1,18 @@
 """Core hex coordinate system using doubled-width coordinates (pointy-top).
 
+This is the lowest-level module in the project — almost every other file
+imports from here. Changes to HexCoord, DIRECTIONS, or pixel conversion
+functions will ripple across the entire codebase.
+
+Depended on by:
+    hex_grid, pathfinding, map_generator, renderer, main, play, replay,
+    game/config, game/state, game/actions, game/engine, game/environment,
+    game/flat_env, game/game_renderer, game/recorder, game/bots,
+    agents (indirectly), tests/test_hex_core, tests/test_hex_grid,
+    tests/test_pathfinding
+
+Dependencies: None (standard library only)
+
 In doubled-width coordinates:
 - col + row is always even
 - East/West neighbors differ by ±2 in col

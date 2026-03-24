@@ -1,4 +1,13 @@
-"""Gym-compatible environment wrapper for HexWar.
+"""Gym-compatible environment wrapper for HexWar (v1 — legacy).
+
+Original environment with multi-channel observation and dict action space.
+Superseded by game/flat_env.py (v2) which has ego-centric obs, flat action
+space, two-tier masking, and reward shaping. Kept for reference.
+
+Depended on by: None (legacy, replaced by flat_env)
+
+Dependencies:
+    hex_core, hex_grid, game/config, game/engine, game/actions, game/state
 
 Follows the Gymnasium API (reset / step / render) without requiring
 gymnasium as a dependency.  Drop-in compatible if you later want to

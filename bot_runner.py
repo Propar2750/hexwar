@@ -1,5 +1,14 @@
 """Headless bot-vs-bot game runner for HexWar.
 
+Top-level entry point for running bot tournaments. Orchestrates
+round-robin scheduling, uses game/bots for strategies, game/recorder
+for saving replays, and optionally launches replay.py for playback.
+Not imported by any other module — safe to modify freely.
+
+Dependencies:
+    game/config, game/engine, game/state, game/actions, game/bots,
+    game/recorder
+
 Run a round-robin tournament between rule-based bots, print win-rate
 statistics, and replay the most interesting match in pygame.
 

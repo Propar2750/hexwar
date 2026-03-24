@@ -1,4 +1,20 @@
-"""A* pathfinding on a hex grid."""
+"""A* pathfinding on a hex grid.
+
+Provides the astar() function and PathResult dataclass for terrain-aware
+shortest-path computation. Used directly by main.py demo and exposed
+via HexGrid.find_path() as a convenience wrapper.
+
+Depended on by:
+    hex_grid (lazy import in find_path), main, tests/test_pathfinding
+
+Dependencies:
+    hex_core (HexCoord, DIRECTIONS), hex_grid (HexGrid, HexTile, Terrain)
+
+Ripple effects:
+    - Changing movement cost logic here affects all pathfinding consumers.
+    - The cost function reads Terrain values from hex_grid, so new terrain
+      types need a cost entry added here (DEFAULT_COST dict).
+"""
 
 from __future__ import annotations
 

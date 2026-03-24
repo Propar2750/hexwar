@@ -1,5 +1,13 @@
 """HexWar — interactive 2-player game.
 
+Top-level entry point for the playable human-vs-human game. Uses the
+game/ package for all logic and renderer.py + game/game_renderer.py for
+display. Not imported by any other module — safe to modify freely.
+
+Dependencies:
+    hex_core, renderer, game/config, game/engine, game/actions,
+    game/state, game/game_renderer
+
 Controls:
     Left-click   — select a tile / confirm target
     Right-click  — cancel selection

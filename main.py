@@ -1,4 +1,11 @@
-"""HexWar — demo: render a hex grid with A* pathfinding."""
+"""HexWar — demo: render a hex grid with A* pathfinding.
+
+Standalone demo app. Click two tiles to visualize A* shortest path.
+Not imported by any other module — safe to modify without side effects.
+
+Dependencies:
+    hex_core, hex_grid, map_generator, pathfinding, renderer
+"""
 
 import pygame
 

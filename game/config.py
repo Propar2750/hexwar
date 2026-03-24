@@ -1,5 +1,22 @@
 """Game configuration — all tunable parameters live here.
 
+Central config dataclass consumed by game/engine, game/game_renderer,
+game/environment, game/flat_env, bot_runner, play, and replay. Any
+parameter change here (grid size, combat values, troop rates) affects
+game balance globally.
+
+Depended on by:
+    game/engine, game/game_renderer, game/environment, game/flat_env,
+    play, replay, bot_runner, tests/test_flat_env
+
+Dependencies:
+    hex_core (HexCoord), hex_grid (Terrain)
+
+Ripple effects:
+    - Adding a MapPreset → bot_runner and play.py can use it immediately.
+    - Changing default troop_generation / defense_bonus values affects
+      bot strategy effectiveness and RL reward shaping.
+
 To add a new terrain type: add it to hex_grid.Terrain, then add entries
 to troop_generation, defense_bonus, and movement_cost dicts here.
 

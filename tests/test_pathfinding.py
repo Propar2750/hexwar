@@ -1,4 +1,8 @@
-"""Tests for A* pathfinding on the hex grid."""
+"""Tests for A* pathfinding on the hex grid.
+
+Covers: basic path correctness, terrain cost handling, obstacle avoidance,
+unreachable targets, and PathResult fields. Run with: pytest
+"""
 
 import sys
 from pathlib import Path

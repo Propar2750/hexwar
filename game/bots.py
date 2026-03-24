@@ -1,5 +1,21 @@
 """Rule-based bot strategies for HexWar.
 
+Provides the Bot protocol and four concrete strategies. BOT_REGISTRY
+maps names to classes for bot_runner tournament selection. Bots are
+also used as opponents in RL training via BotFlatAdapter in flat_env.
+
+Depended on by:
+    game/__init__, bot_runner, tests/test_flat_env
+
+Dependencies:
+    hex_core, hex_grid (Terrain), game/state, game/config,
+    game/actions, game/combat (win_probability)
+
+Ripple effects:
+    - Adding a new bot → add to BOT_REGISTRY so bot_runner picks it up.
+    - Changing Bot protocol → update all concrete bots and BotFlatAdapter.
+    - Bot quality affects RL curriculum — they serve as training opponents.
+
 Three baseline bots for game validation and future RL benchmarking:
   - RandomBot: uniformly random legal moves
   - GreedyExpansionBot: maximize territory gain per turn
@@ -392,9 +408,28 @@ class TurtleDefendBot:
         return None
 
 
+# ---------------------------------------------------------------------------
+# NoOpBot — passive opponent (always ends turn immediately)
+# ---------------------------------------------------------------------------
+
+class NoOpBot:
+    """Always ends turn immediately. Used as a passive training opponent."""
+
+    name: str = "NoOp"
+
+    def choose_action(
+        self,
+        state: GameState,
+        player_id: int,
+        config: GameConfig,
+    ) -> EndTurnAction:
+        return EndTurnAction()
+
+
 # Bot registry for CLI convenience
 BOT_REGISTRY: dict[str, type] = {
     "random": RandomBot,
     "greedy": GreedyExpansionBot,
     "turtle": TurtleDefendBot,
+    "noop": NoOpBot,
 }

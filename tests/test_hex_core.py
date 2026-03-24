@@ -1,4 +1,8 @@
-"""Tests for hex_core — HexCoord, pixel_to_hex, hex_vertices."""
+"""Tests for hex_core — HexCoord, pixel_to_hex, hex_vertices.
+
+Covers: coordinate creation, neighbor computation, distance, pixel
+conversion round-trips, and vertex generation. Run with: pytest
+"""
 
 import math
 import sys

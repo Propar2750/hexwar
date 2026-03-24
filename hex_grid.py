@@ -1,4 +1,25 @@
-"""HexGrid — manages a rectangular collection of hex tiles."""
+"""HexGrid — manages a rectangular collection of hex tiles.
+
+Defines the Terrain enum (PLAINS, FERTILE, MOUNTAIN) and the HexGrid
+container that holds HexTile objects. This is the second foundational
+layer after hex_core — most game logic depends on it.
+
+Depended on by:
+    pathfinding, map_generator, renderer, main, play, replay,
+    game/config, game/state, game/engine, game/game_renderer,
+    game/environment, game/flat_env, game/bots,
+    tests/test_hex_grid, tests/test_pathfinding, tests/test_main_utils
+
+Dependencies:
+    hex_core (HexCoord), pathfinding (lazy import in find_path)
+
+Ripple effects:
+    - Adding a new Terrain variant → update game/config.py dicts
+      (troop_generation, defense_bonus, movement_cost) and renderer
+      TERRAIN_FILL colors.
+    - Changing HexGrid API → affects map_generator, game/engine,
+      game/state, and all rendering code.
+"""
 
 from __future__ import annotations
 

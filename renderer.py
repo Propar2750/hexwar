@@ -1,4 +1,20 @@
-"""Pygame rendering for hex grids."""
+"""Pygame rendering for hex grids.
+
+Base rendering layer — draws terrain-coloured hexagons, highlights, and
+path overlays. Extended by game/game_renderer.py which adds ownership
+tinting, troop labels, and HUD elements.
+
+Depended on by:
+    main, play, game/game_renderer, replay
+
+Dependencies:
+    hex_core (HexCoord, hex_vertices), hex_grid (HexGrid, Terrain)
+
+Ripple effects:
+    - Changing TERRAIN_FILL colours or HexRenderer API affects all visual
+      output including game_renderer and replay viewer.
+    - BG_COLOR is imported by play.py and replay.py for window background.
+"""
 
 from __future__ import annotations
 

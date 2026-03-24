@@ -1,4 +1,8 @@
-"""Tests for hex_grid — Terrain, HexTile, HexGrid."""
+"""Tests for hex_grid — Terrain, HexTile, HexGrid.
+
+Covers: terrain enum values, tile creation, grid dimensions, coordinate
+validity, and tile lookup. Run with: pytest
+"""
 
 import sys
 from pathlib import Path

@@ -1,5 +1,11 @@
 """Temporary test: cellular automata terrain generation on hex grid.
 
+One-off parameter sweep script for tuning map_generator defaults.
+Not imported by any other module — can be deleted once tuning is done.
+
+Dependencies:
+    hex_grid (HexGrid, Terrain)
+
 Sweeps seed probability p for fertile tiles, runs CA iterations
 (threshold=4: a tile becomes fertile if >=4 of its neighbors are fertile),
 and reports the final fertile fraction for each p.

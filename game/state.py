@@ -1,7 +1,21 @@
 """Game state — the complete snapshot of a game at any point in time.
 
-GameState is intentionally a plain data container. All mutation goes
-through GameEngine so that rules are enforced in one place.
+Defines GameState (full game snapshot), TileState (per-tile ownership and
+troop count), GamePhase enum, and SupplyChain dataclass. This is a pure
+data layer — GameEngine is the only module that should mutate GameState.
+
+Depended on by:
+    game/engine, game/actions, game/bots, game/environment, game/flat_env,
+    game/game_renderer, game/recorder, play, replay, bot_runner
+
+Dependencies:
+    hex_core (HexCoord), hex_grid (HexGrid)
+
+Ripple effects:
+    - Adding fields to GameState → update game/recorder (serialization),
+      game/flat_env (observation encoding), and game/game_renderer (display).
+    - Changing GamePhase variants → update game/engine phase transitions
+      and any UI code checking phase.
 """
 
 from __future__ import annotations

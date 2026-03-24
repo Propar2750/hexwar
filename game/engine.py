@@ -1,5 +1,22 @@
 """GameEngine — orchestrates the full game lifecycle.
 
+Central orchestrator that owns and mutates GameState. All game rules
+are enforced here. Used by play.py, bot_runner.py, and both Gym
+environments (environment.py, flat_env.py).
+
+Depended on by:
+    game/environment, game/flat_env, play, replay, bot_runner
+
+Dependencies:
+    hex_core, hex_grid, map_generator, game/config, game/state,
+    game/actions, game/combat
+
+Ripple effects:
+    - Changing victory conditions or turn flow affects ALL consumers
+      (human play, bot tournaments, RL training).
+    - Adding a new action type → add a handler in execute_action().
+    - Changing troop generation logic → affects game balance everywhere.
+
 Responsibilities:
     • reset / map generation
     • starting-position placement

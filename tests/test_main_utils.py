@@ -1,4 +1,8 @@
-"""Tests for map_generator terrain generation."""
+"""Tests for map_generator terrain generation.
+
+Covers: deterministic seeding, mountain placement, fertile distribution,
+and edge-case parameter ranges. Run with: pytest
+"""
 
 import sys
 from pathlib import Path

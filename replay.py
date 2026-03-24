@@ -1,5 +1,13 @@
 """HexWar Replay Viewer — watch recorded bot games step by step.
 
+Standalone replay app launched by bot_runner.py after a tournament.
+Loads a GameRecord JSON and steps through frame snapshots with pygame.
+Not imported by any other module — safe to modify freely.
+
+Dependencies:
+    hex_core, hex_grid, renderer, game/config, game/engine, game/actions,
+    game/state, game/game_renderer, game/recorder
+
 Controls:
     Space        — play / pause auto-advance
     Right arrow  — next frame

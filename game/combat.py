@@ -1,5 +1,20 @@
 """Combat resolution — pluggable via the CombatResolver protocol.
 
+Provides CombatResolver protocol, DefaultCombatResolver, CombatResult,
+and the win_probability() helper used by bots for tactical evaluation.
+No project imports — this is a leaf module with no internal dependencies.
+
+Depended on by:
+    game/engine, game/bots, game/flat_env
+
+Dependencies: None (standard library only)
+
+Ripple effects:
+    - Changing the combat formula affects game balance, bot strategy
+      effectiveness, and RL reward signals.
+    - win_probability() is used by GreedyExpansionBot and flat_env
+      reward shaping — changes here shift bot behavior and training.
+
 Default formula (from GAMELOGIC.md):
     threshold = defense_bonus * (1 + D + sqrt(D))
 

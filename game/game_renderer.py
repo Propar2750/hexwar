@@ -1,5 +1,21 @@
 """Game-aware hex renderer — draws ownership, troops, and HUD.
 
+Extends renderer.py's base HexRenderer with game-specific visuals:
+ownership tinting, troop labels, supply chain lines, and the HUD panel.
+Used by play.py and replay.py for all game display.
+
+Depended on by:
+    play, replay
+
+Dependencies:
+    hex_core, hex_grid, renderer (HexRenderer, TERRAIN_FILL, BG_COLOR),
+    game/state (GameState, GamePhase, SupplyChain), game/config
+
+Ripple effects:
+    - Changing HUD layout or player colours affects both live play and
+      replay viewer appearance.
+    - PLAYER_COLORS and PLAYER_NAMES are imported by replay.py.
+
 Keeps the same dark, organic look as main.py's terrain demo.
 Ownership is shown via subtle colour tinting and player-coloured
 borders.  Troop counts are rendered as small readable labels.

@@ -1,5 +1,20 @@
 """Map generation using cellular automata for hex grids.
 
+Procedural terrain generation with cellular automata for fertile regions
+and random-walk mountain ranges. Called by game/engine.py during reset()
+and by main.py / bot_runner.py for standalone demos.
+
+Depended on by:
+    game/engine, main, bot_runner, tests/test_main_utils
+
+Dependencies:
+    hex_core (DIRECTIONS, HexCoord), hex_grid (HexGrid, Terrain)
+
+Ripple effects:
+    - Changing generation parameters affects map balance across ALL games.
+    - game/config.py MapPreset overrides these defaults — check both when
+      tuning terrain distribution.
+
 Produces organic terrain clusters:
 1. Seed tiles as fertile with probability p
 2. Run CA iterations (symmetric threshold rule)

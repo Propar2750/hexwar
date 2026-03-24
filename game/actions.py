@@ -1,5 +1,22 @@
 """Action types and validation.
 
+Defines MoveAction, EndTurnAction, SetupSupplyChainAction, plus
+validation functions (validate_move, validate_supply_chain) and
+get_valid_targets() for computing legal moves. The action types are
+used everywhere actions flow through the system.
+
+Depended on by:
+    game/engine, game/bots, game/environment, game/flat_env,
+    game/recorder, play, replay, bot_runner
+
+Dependencies:
+    hex_core (HexCoord), game/state (GameState, GamePhase, SupplyChain)
+
+Ripple effects:
+    - Adding a new action kind → update game/engine.execute_action(),
+      game/bots (so bots can emit it), game/flat_env (action encoding),
+      and game/recorder (serialization).
+
 Every player action is a dataclass.  To add a new action kind (e.g.
 BuildAction for a new troop type), define it here and teach
 GameEngine.execute_action() to handle it.

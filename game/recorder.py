@@ -1,5 +1,20 @@
 """Game recording, interestingness scoring, and JSON serialization.
 
+Provides GameRecord and FrameSnapshot dataclasses, plus helpers for
+capturing state, scoring game interestingness, and save/load to JSON.
+Used by bot_runner during tournaments and replay.py for playback.
+
+Depended on by:
+    bot_runner, replay
+
+Dependencies:
+    hex_core, game/actions, game/config, game/state
+
+Ripple effects:
+    - Changing serialization format → update replay.py deserialization.
+    - Adding new action types → update action serialization in
+      _serialize_action / _deserialize_action.
+
 Records every action + lightweight state snapshot during a game,
 scores games by how interesting they'd be to watch, and provides
 save/load to JSON for persistent tournament replays.
