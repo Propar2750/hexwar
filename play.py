@@ -132,7 +132,7 @@ def main() -> None:
 
                 if event.button == 1 and hovered is not None:
                     if ui.supply_chain_mode:
-                        _handle_supply_chain_click(engine, state, ui, hovered, config)
+                        _handle_supply_chain_click(engine, state, ui, hovered)
                         state = engine.state
                     else:
                         _handle_click(engine, state, ui, hovered, config)
@@ -225,6 +225,7 @@ def _handle_click(
     # Confirming troop count
     if ui.troop_target is not None:
         if clicked == ui.troop_target:
+            assert ui.selected is not None
             move = MoveAction(
                 source=ui.selected,
                 target=ui.troop_target,
@@ -283,7 +284,6 @@ def _handle_supply_chain_click(
     state: GameState,
     ui: UIState,
     clicked: HexCoord,
-    config: GameConfig,
 ) -> None:
     """Process a left-click while in supply chain placement mode.
 

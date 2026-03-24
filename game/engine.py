@@ -40,7 +40,7 @@ class GameEngine:
         self.config = config or GameConfig()
         self.combat: CombatResolver = combat_resolver or DefaultCombatResolver()
         self.rng = random.Random(self.config.map_seed)
-        self.state: GameState | None = None
+        self.state: GameState = None  # type: ignore[assignment]  — set by reset()
 
     # ------------------------------------------------------------------
     # Lifecycle
