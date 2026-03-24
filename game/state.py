@@ -64,7 +64,7 @@ class GameState:
         self.winner: int | None = None
         self.moves_made: int = 0    # moves made this turn by current player
         self.supply_chains: list[SupplyChain] = []
-        self.supply_chain_set_this_turn: set[int] = set()  # players who already set a chain this turn
+        self.supply_chains_set_this_turn: dict[int, int] = {}  # player -> count of chains set this turn (max 2)
 
     # ----- queries -----
 

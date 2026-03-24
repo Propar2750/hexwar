@@ -16,7 +16,7 @@ from __future__ import annotations
 import random
 
 from hex_core import HexCoord
-from hex_grid import HexGrid
+from hex_grid import HexGrid, Terrain
 from map_generator import generate_terrain
 
 from game.actions import (
@@ -25,7 +25,7 @@ from game.actions import (
 )
 from game.state import SupplyChain
 from game.combat import CombatResolver, DefaultCombatResolver
-from game.config import GameConfig
+from game.config import GameConfig, MapPreset, SMALL_FIXED_TERRAIN, SMALL_FIXED_STARTS
 from game.state import GamePhase, GameState
 
 
@@ -47,16 +47,81 @@ class GameEngine:
     # ------------------------------------------------------------------
 
     def reset(self) -> GameState:
-        """Create a fresh game: build grid, generate terrain, init state."""
-        grid = HexGrid(self.config.grid_width, self.config.grid_height)
-        generate_terrain(
-            grid,
-            seed=self.config.map_seed,
-            num_ranges=self.config.num_mountain_ranges,
-            min_range_steps=self.config.min_range_steps,
-            range_end_prob=self.config.range_end_prob,
-        )
-        self.state = GameState(grid, self.config.num_players)
+        """Create a fresh game: build grid, generate terrain, init state.
+
+        When ``auto_place_starts`` is enabled (default), the engine will
+        automatically choose resource-balanced starting positions and skip
+        the SETUP phase.  If no balanced placement is found after several
+        terrain regenerations, the best attempt is used.
+
+        For the SMALL_FIXED preset, a hand-crafted symmetric map with
+        predetermined spawn points is used instead of procedural generation.
+        """
+        if self.config.preset == MapPreset.SMALL_FIXED:
+            return self._reset_fixed()
+
+        cfg = self.config
+        seed = cfg.map_seed
+
+        best_state: GameState | None = None
+        best_ratio: float = -1.0
+
+        for attempt in range(10):
+            grid = HexGrid(cfg.grid_width, cfg.grid_height)
+            generate_terrain(
+                grid,
+                seed=seed,
+                fertile_p=cfg.fertile_p,
+                ca_iterations=cfg.ca_iterations,
+                ca_threshold=cfg.ca_threshold,
+                num_ranges=cfg.num_mountain_ranges,
+                min_range_steps=cfg.min_range_steps,
+                range_end_prob=cfg.range_end_prob,
+            )
+            state = GameState(grid, cfg.num_players)
+
+            if not cfg.auto_place_starts:
+                self.state = state
+                return self.state
+
+            starts = self._find_balanced_starts(state, grid)
+            if starts is not None:
+                ratio = self._placement_ratio(state, grid, starts)
+                if ratio >= cfg.balance_threshold:
+                    self._apply_starts(state, starts)
+                    self.state = state
+                    return self.state
+                if ratio > best_ratio:
+                    best_ratio = ratio
+                    best_state = state
+                    self._apply_starts(best_state, starts)
+
+            # Try a different seed for next attempt
+            seed = (seed or 0) + 1
+
+        # Use the best attempt we found, or fall back to unplaced state
+        if best_state is not None:
+            self.state = best_state
+        else:
+            self.state = state  # type: ignore[possibly-undefined]
+        return self.state
+
+    def _reset_fixed(self) -> GameState:
+        """Build the hand-crafted SMALL_FIXED map with predetermined spawns."""
+        cfg = self.config
+        grid = HexGrid(cfg.grid_width, cfg.grid_height)
+
+        # Paint terrain from the fixed layout
+        for tile in grid:
+            key = (tile.coord.col, tile.coord.row)
+            tile.terrain = SMALL_FIXED_TERRAIN.get(key, Terrain.PLAINS)
+
+        state = GameState(grid, cfg.num_players)
+
+        # Place players at the fixed spawn points
+        starts = [HexCoord(c, r) for c, r in SMALL_FIXED_STARTS]
+        self._apply_starts(state, starts)
+        self.state = state
         return self.state
 
     # ------------------------------------------------------------------
@@ -181,7 +246,7 @@ class GameEngine:
             owner=player,
         )
         s.supply_chains.append(chain)
-        s.supply_chain_set_this_turn.add(player)
+        s.supply_chains_set_this_turn[player] = s.supply_chains_set_this_turn.get(player, 0) + 1
         return None
 
     def _end_turn(self) -> str | None:
@@ -213,10 +278,87 @@ class GameEngine:
 
             self._generate_troops()
             self._process_supply_chains()
-            s.supply_chain_set_this_turn.clear()
+            s.supply_chains_set_this_turn.clear()
 
         s.current_player = next_player
         return None
+
+    # ------------------------------------------------------------------
+    # Balanced placement helpers
+    # ------------------------------------------------------------------
+
+    def _region_value(self, state: GameState, grid: HexGrid, coord: HexCoord) -> int:
+        """Sum troop-generation potential for all tiles within balance_radius."""
+        total = 0
+        for tile in grid:
+            if coord.distance_to(tile.coord) <= self.config.balance_radius:
+                total += self.config.troop_generation.get(tile.terrain, 0)
+        return total
+
+    def _placement_ratio(
+        self, state: GameState, grid: HexGrid, starts: list[HexCoord],
+    ) -> float:
+        """Return min/max region-value ratio (1.0 = perfectly balanced)."""
+        values = [self._region_value(state, grid, c) for c in starts]
+        if not values or max(values) == 0:
+            return 0.0
+        return min(values) / max(values)
+
+    def _find_balanced_starts(
+        self, state: GameState, grid: HexGrid, max_attempts: int = 50,
+    ) -> list[HexCoord] | None:
+        """Try to find starting positions that satisfy distance + balance constraints.
+
+        Returns a list of coords (one per player) or None if no valid set was found.
+        """
+        from hex_grid import Terrain
+
+        cfg = self.config
+        candidates = [t.coord for t in grid if t.terrain != Terrain.MOUNTAIN]
+        if len(candidates) < cfg.num_players:
+            return None
+
+        best_starts: list[HexCoord] | None = None
+        best_ratio: float = -1.0
+
+        for _ in range(max_attempts):
+            picks: list[HexCoord] = []
+            pool = list(candidates)
+            self.rng.shuffle(pool)
+
+            for coord in pool:
+                if all(coord.distance_to(p) >= cfg.min_start_distance for p in picks):
+                    picks.append(coord)
+                    if len(picks) == cfg.num_players:
+                        break
+
+            if len(picks) < cfg.num_players:
+                continue
+
+            ratio = self._placement_ratio(state, grid, picks)
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_starts = picks
+
+            if ratio >= cfg.balance_threshold:
+                return picks
+
+        return best_starts
+
+    def _apply_starts(self, state: GameState, starts: list[HexCoord]) -> None:
+        """Place players at the given starting coords and transition to PLAY."""
+        for player, coord in enumerate(starts):
+            ts = state.tiles[coord]
+            ts.owner = player
+            ts.troops = self.config.starting_troops
+            state.players_placed += 1
+
+        state.phase = GamePhase.PLAY
+        state.current_player = 0
+        state.turn = 1
+        self._state_backup = self.state  # save in case _generate_troops needs self.state
+        self.state = state
+        self._generate_troops()
 
     # ------------------------------------------------------------------
     # Internal helpers

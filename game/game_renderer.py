@@ -72,6 +72,10 @@ class GameRenderer(HexRenderer):
         self._hud_font: pygame.font.Font | None = None
         self._hud_font_bold: pygame.font.Font | None = None
         self._big_font: pygame.font.Font | None = None
+        # Cached static surfaces (built once, reused every frame)
+        self._hud_panel: pygame.Surface | None = None
+        self._controls_bar: pygame.Surface | None = None
+        self._game_over_overlay: pygame.Surface | None = None
 
     # ── Lazy fonts ────────────────────────────────────────────
 
@@ -317,11 +321,12 @@ class GameRenderer(HexRenderer):
     ) -> None:
         sw = self.surface.get_width()
 
-        # Semi-transparent top panel (3 rows: info, messages, hover)
+        # Semi-transparent top panel (cached — size never changes)
         panel_h = 76
-        panel = pygame.Surface((sw, panel_h), pygame.SRCALPHA)
-        panel.fill((*HUD_PANEL_BG, 210))
-        self.surface.blit(panel, (0, 0))
+        if self._hud_panel is None or self._hud_panel.get_width() != sw:
+            self._hud_panel = pygame.Surface((sw, panel_h), pygame.SRCALPHA)
+            self._hud_panel.fill((*HUD_PANEL_BG, 210))
+        self.surface.blit(self._hud_panel, (0, 0))
 
         # ── Left: phase / turn ──
         if state.phase == GamePhase.SETUP:
@@ -399,29 +404,32 @@ class GameRenderer(HexRenderer):
     def draw_controls(self) -> None:
         sw = self.surface.get_width()
         sh = self.surface.get_height()
-
         bar_h = 28
-        bar = pygame.Surface((sw, bar_h), pygame.SRCALPHA)
-        bar.fill((*HUD_PANEL_BG, 180))
-        self.surface.blit(bar, (0, sh - bar_h))
 
-        parts = [
-            ("LClick", "select / move"),
-            ("RClick", "cancel"),
-            ("Scroll", "adjust troops"),
-            ("S", "supply chain"),
-            ("Space", "end turn"),
-            ("R", "restart"),
-            ("Esc", "quit"),
-        ]
-        x = 14
-        for key, desc in parts:
-            ks = self.hud_font_bold.render(key, True, HUD_TEXT)
-            ds = self.hud_font.render(f" {desc}", True, HUD_DIM)
-            self.surface.blit(ks, (x, sh - bar_h + 5))
-            x += ks.get_width()
-            self.surface.blit(ds, (x, sh - bar_h + 5))
-            x += ds.get_width() + 18
+        # Build the controls bar once — it's fully static
+        if self._controls_bar is None or self._controls_bar.get_width() != sw:
+            self._controls_bar = pygame.Surface((sw, bar_h), pygame.SRCALPHA)
+            self._controls_bar.fill((*HUD_PANEL_BG, 180))
+
+            parts = [
+                ("LClick", "select / move"),
+                ("RClick", "cancel"),
+                ("Scroll", "adjust troops"),
+                ("S", "supply chain"),
+                ("Space", "end turn"),
+                ("R", "restart"),
+                ("Q", "quit"),
+            ]
+            x = 14
+            for key, desc in parts:
+                ks = self.hud_font_bold.render(key, True, HUD_TEXT)
+                ds = self.hud_font.render(f" {desc}", True, HUD_DIM)
+                self._controls_bar.blit(ks, (x, 5))
+                x += ks.get_width()
+                self._controls_bar.blit(ds, (x, 5))
+                x += ds.get_width() + 18
+
+        self.surface.blit(self._controls_bar, (0, sh - bar_h))
 
     # ── Game-over overlay ─────────────────────────────────────
 
@@ -431,28 +439,28 @@ class GameRenderer(HexRenderer):
         sw = self.surface.get_width()
         sh = self.surface.get_height()
 
-        # Dim overlay
-        overlay = pygame.Surface((sw, sh), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 100))
-        self.surface.blit(overlay, (0, 0))
+        # Build the full overlay once (dim + banner + subtitle)
+        if self._game_over_overlay is None or self._game_over_overlay.get_size() != (sw, sh):
+            self._game_over_overlay = pygame.Surface((sw, sh), pygame.SRCALPHA)
+            self._game_over_overlay.fill((0, 0, 0, 100))
 
-        # Winner banner
-        w = state.winner
-        if w is not None:
-            name = PLAYER_NAMES[w % len(PLAYER_NAMES)]
-            pcol = PLAYER_COLORS[w % len(PLAYER_COLORS)]
-            text = f"{name} Wins!"
-        else:
-            pcol = HUD_TEXT
-            text = "Draw!"
+            w = state.winner
+            if w is not None:
+                name = PLAYER_NAMES[w % len(PLAYER_NAMES)]
+                pcol = PLAYER_COLORS[w % len(PLAYER_COLORS)]
+                text = f"{name} Wins!"
+            else:
+                pcol = HUD_TEXT
+                text = "Draw!"
 
-        label = self.big_font.render(text, True, pcol)
-        rect = label.get_rect(center=(sw // 2, sh // 2 - 20))
-        # shadow
-        shadow = self.big_font.render(text, True, (0, 0, 0))
-        self.surface.blit(shadow, rect.move(2, 2))
-        self.surface.blit(label, rect)
+            label = self.big_font.render(text, True, pcol)
+            rect = label.get_rect(center=(sw // 2, sh // 2 - 20))
+            shadow = self.big_font.render(text, True, (0, 0, 0))
+            self._game_over_overlay.blit(shadow, rect.move(2, 2))
+            self._game_over_overlay.blit(label, rect)
 
-        sub = self.hud_font.render("Press R to restart", True, HUD_DIM)
-        sr = sub.get_rect(center=(sw // 2, sh // 2 + 25))
-        self.surface.blit(sub, sr)
+            sub = self.hud_font.render("Press R to restart", True, HUD_DIM)
+            sr = sub.get_rect(center=(sw // 2, sh // 2 + 25))
+            self._game_over_overlay.blit(sub, sr)
+
+        self.surface.blit(self._game_over_overlay, (0, 0))

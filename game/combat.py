@@ -43,6 +43,22 @@ class CombatResolver(Protocol):
     ) -> CombatResult: ...
 
 
+def win_probability(attacker: int, defender: int, defense_bonus: float) -> float:
+    """Compute attacker's win probability using the threshold formula.
+
+    Returns 1.0 for guaranteed win, 0.0 for guaranteed loss,
+    or a linear interpolation in between.
+    """
+    if defender == 0:
+        return 1.0
+    threshold = defense_bonus * (1 + defender + math.sqrt(defender))
+    if attacker >= threshold:
+        return 1.0
+    if attacker <= defender:
+        return 0.0
+    return (attacker - defender) / (threshold - defender)
+
+
 class DefaultCombatResolver:
     """GAMELOGIC.md threshold-based combat with linear probability band."""
 
@@ -78,11 +94,4 @@ class DefaultCombatResolver:
     def _win_probability(
         attacker: int, defender: int, defense_bonus: float
     ) -> float:
-        if defender == 0:
-            return 1.0
-        threshold = defense_bonus * (1 + defender + math.sqrt(defender))
-        if attacker >= threshold:
-            return 1.0
-        if attacker <= defender:
-            return 0.0
-        return (attacker - defender) / (threshold - defender)
+        return win_probability(attacker, defender, defense_bonus)

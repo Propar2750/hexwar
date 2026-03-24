@@ -34,7 +34,11 @@ checkpoints/
 Thumbs.db
 .DS_Store
 
-# Claude Code memory
+# Tournament replays
+tournaments/
+
+# Claude Code
 memory/
-.claude/ 
+.claude/
+.mcp.json
 

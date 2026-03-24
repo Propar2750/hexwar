@@ -9,20 +9,28 @@ Controls:
     Escape       — quit
 """
 
+import sys
+
 import pygame
 
 from hex_core import HexCoord, pixel_to_hex
 from renderer import BG_COLOR
 
-from game.config import GameConfig
+from game.config import GameConfig, MapPreset
 from game.engine import GameEngine
 from game.actions import MoveAction, EndTurnAction, SetupSupplyChainAction, get_valid_targets
 from game.state import GamePhase, GameState
 from game.game_renderer import GameRenderer, PLAYER_NAMES
 
-# ── Display settings (matches main.py) ────────────────────────
+# ── Display settings ──────────────────────────────────────────
 SCREEN_W, SCREEN_H = 1200, 900
-HEX_SIZE = 30
+
+HEX_SIZE_FOR_PRESET: dict[MapPreset, int] = {
+    MapPreset.SMALL: 40,
+    MapPreset.SMALL_FIXED: 40,
+    MapPreset.MEDIUM: 30,
+    MapPreset.LARGE: 22,
+}
 
 
 class UIState:
@@ -70,14 +78,19 @@ def main() -> None:
     pygame.display.set_caption("HexWar")
     clock = pygame.time.Clock()
 
-    config = GameConfig()
+    # Parse optional preset from CLI: python play.py [small|medium|large]
+    preset_name = sys.argv[1] if len(sys.argv) > 1 else "medium"
+    preset = MapPreset(preset_name)
+    hex_size = HEX_SIZE_FOR_PRESET[preset]
+
+    config = GameConfig(preset=preset)
     engine = GameEngine(config)
     state = engine.reset()
 
     # Center the grid — same formula as main.py
-    origin_x = SCREEN_W / 2 - (config.grid_width - 1) * HEX_SIZE * 0.866
-    origin_y = SCREEN_H / 2 - (config.grid_height - 1) * HEX_SIZE * 0.75
-    renderer = GameRenderer(screen, hex_size=HEX_SIZE, origin=(origin_x, origin_y))
+    origin_x = SCREEN_W / 2 - (config.grid_width - 1) * hex_size * 0.866
+    origin_y = SCREEN_H / 2 - (config.grid_height - 1) * hex_size * 0.75
+    renderer = GameRenderer(screen, hex_size=hex_size, origin=(origin_x, origin_y))
 
     ui = UIState()
     hovered: HexCoord | None = None
@@ -90,7 +103,7 @@ def main() -> None:
                 continue
 
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
+                if event.key == pygame.K_q:
                     running = False
 
                 elif event.key == pygame.K_r:
@@ -98,14 +111,18 @@ def main() -> None:
                     state = engine.reset()
                     ui.clear()
                     ui.message = ""
+                    renderer._game_over_overlay = None
+                    origin_x = SCREEN_W / 2 - (config.grid_width - 1) * hex_size * 0.866
+                    origin_y = SCREEN_H / 2 - (config.grid_height - 1) * hex_size * 0.75
+                    renderer = GameRenderer(screen, hex_size=hex_size, origin=(origin_x, origin_y))
 
                 elif event.key == pygame.K_s:
                     if state.phase == GamePhase.PLAY:
                         if ui.supply_chain_mode:
                             ui.clear_supply_chain()
                             ui.set_message("Supply chain mode cancelled", 60)
-                        elif state.current_player in state.supply_chain_set_this_turn:
-                            ui.set_message("Already set a supply chain this turn", 90)
+                        elif state.supply_chains_set_this_turn.get(state.current_player, 0) >= 2:
+                            ui.set_message("Already set 2 supply chains this turn", 90)
                         else:
                             ui.clear()
                             ui.supply_chain_mode = True
@@ -151,7 +168,7 @@ def main() -> None:
         # Hover detection
         mx, my = pygame.mouse.get_pos()
         candidate = pixel_to_hex(
-            mx - renderer.origin_x, my - renderer.origin_y, HEX_SIZE,
+            mx - renderer.origin_x, my - renderer.origin_y, hex_size,
         )
         hovered = candidate if candidate in state.grid else None
 

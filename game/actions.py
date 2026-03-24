@@ -77,8 +77,8 @@ def validate_supply_chain(
         return "Game is not in PLAY phase"
     if state.current_player != player:
         return "Not your turn"
-    if player in state.supply_chain_set_this_turn:
-        return "Already set up a supply chain this turn"
+    if state.supply_chains_set_this_turn.get(player, 0) >= 2:
+        return "Already set up 2 supply chains this turn"
 
     src = state.tiles.get(action.source)
     if src is None:
