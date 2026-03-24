@@ -7,7 +7,7 @@ Default formula (from GAMELOGIC.md):
     A <= D          → guaranteed loss
     D < A <= thresh → win probability = (A - D) / (threshold - D)
 
-On win:  attacker takes the tile with max(1, A - D) troops.
+On win:  attacker takes the tile with max(1, A - defense_bonus*D) troops.
 On loss: all attacking troops are destroyed; defender unchanged.
 
 To swap in a different combat model, implement CombatResolver and pass

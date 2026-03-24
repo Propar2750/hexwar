@@ -95,7 +95,8 @@ class HexWarEnv:
         source_index == -2 → SetupSupplyChain (requires dest_index).
         """
         state = self.engine.state
-        prev_territory = state.territory_count(state.current_player)
+        acting_player = state.current_player
+        prev_territory = state.territory_count(acting_player)
 
         src_idx = action.get("source_index", -1)
         if src_idx == -2:
@@ -130,16 +131,16 @@ class HexWarEnv:
                 obs = self._build_observation()
                 return obs, -0.01, False, False, {**self._info(), "error": err}
 
-        # Compute reward
+        # Compute reward (use acting_player, not current_player which may have advanced)
         state = self.engine.state
-        new_territory = state.territory_count(state.current_player)
+        new_territory = state.territory_count(acting_player)
         reward = float(new_territory - prev_territory)
 
         done = state.phase == GamePhase.GAME_OVER
-        truncated = state.turn > self.config.max_turns if not done else False
+        truncated = False
 
         if done and state.winner is not None:
-            reward += 10.0 if state.winner == state.current_player else -10.0
+            reward += 10.0 if state.winner == acting_player else -10.0
 
         obs = self._build_observation()
         return obs, reward, done, truncated, self._info()

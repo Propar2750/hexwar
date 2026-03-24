@@ -100,8 +100,8 @@ def _generate_mountain_ranges(
     step has end_prob chance of ending the range. Direction changes are
     weighted:
         straight (0):    straight_prob  (0.32)
-        slight +-1:      slight_turn_prob each (0.24)
-        hard +-2:        hard_turn_prob each (0.10)
+        slight +-1:      slight_turn_prob each (0.28)
+        hard +-2:        hard_turn_prob each (0.06)
     """
     turn_weights = [hard_turn_prob, slight_turn_prob, straight_prob, slight_turn_prob, hard_turn_prob]
     turn_offsets = [-2, -1, 0, 1, 2]

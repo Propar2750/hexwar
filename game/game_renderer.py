@@ -380,7 +380,7 @@ class GameRenderer(HexRenderer):
             ts = state.tiles[hovered]
             tile = state.grid[hovered]
             terrain = tile.terrain.value
-            owner = PLAYER_NAMES[ts.owner] if ts.owner is not None else "--"
+            owner = PLAYER_NAMES[ts.owner % len(PLAYER_NAMES)] if ts.owner is not None else "--"
             db = config.defense_bonus.get(tile.terrain, 1.0)
             tg = config.troop_generation.get(tile.terrain, 0)
             info = f"({hovered.col},{hovered.row})  {terrain}  own:{owner}  troops:{ts.troops}  def:{db:.0f}x  gen:+{tg}"

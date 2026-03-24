@@ -190,7 +190,11 @@ class GameEngine:
             return "Game is not in play phase"
 
         s.moves_made = 0
+
+        # Find the next alive player (skip eliminated ones)
         next_player = (s.current_player + 1) % s.num_players
+        while not s.is_alive(next_player) and next_player != s.current_player:
+            next_player = (next_player + 1) % s.num_players
 
         if next_player <= s.current_player:
             # All players have acted — new round

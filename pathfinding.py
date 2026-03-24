@@ -4,13 +4,10 @@ from __future__ import annotations
 
 import heapq
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable
+from typing import Callable
 
 from hex_core import HexCoord
 from hex_grid import HexGrid, HexTile, Terrain
-
-if TYPE_CHECKING:
-    pass
 
 # Default movement costs per terrain type.
 # Mountains are expensive to traverse; fertile land moves like plains.
@@ -88,7 +85,7 @@ def astar(
     g_score: dict[HexCoord, float] = {start: 0.0}
 
     while open_set:
-        _, _, current = heapq.heappop(open_set)
+        f, _, current = heapq.heappop(open_set)
 
         if current == goal:
             path = [current]
@@ -98,10 +95,9 @@ def astar(
             path.reverse()
             return PathResult(path=tuple(path), cost=g_score[goal])
 
-        current_g = g_score[current]
-
         # Skip stale heap entries (we already found a cheaper path to this node)
-        if current_g > g_score.get(current, float("inf")):
+        current_g = g_score.get(current, float("inf"))
+        if f > current_g + current.distance_to(goal):
             continue
 
         for neighbor_tile in grid.neighbors_of(current):
