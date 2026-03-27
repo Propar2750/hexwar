@@ -116,7 +116,7 @@ class DQNAgent:
         with torch.no_grad():
             q_values = self.q_net(obs_t).squeeze(0)           # (action_size,)
             q_values[~self.hard_mask] = float("-inf")
-            q_values += soft_t                                  # -10.0 bias for state-invalid
+            q_values[soft_t != 0.0] = float("-inf")            # hard-block state-invalid
             return q_values.argmax().item()
 
     # ------------------------------------------------------------------
@@ -136,14 +136,22 @@ class DQNAgent:
         q_values = self.q_net(obs)                              # (B, A)
         q_sa = q_values.gather(1, action)                       # (B, 1)
 
-        # Target: r + γ max_a' Q_target(s', a')  (masked)
+        # Double DQN target: Q_target(s', argmax_a Q_online(s', a))
+        # Online net selects best action; target net evaluates it.
+        # This reduces Q-value overestimation.
         with torch.no_grad():
+            # Build validity mask for next state.
+            valid = self.hard_mask.unsqueeze(0).expand_as(next_soft).clone()
+            valid[next_soft != 0.0] = False
+
+            # Online net picks the best valid action.
+            online_q = self.q_net(next_obs)                     # (B, A)
+            online_q[~valid] = float("-inf")
+            best_actions = online_q.argmax(dim=1, keepdim=True) # (B, 1)
+
+            # Target net evaluates that action.
             target_q = self.target_net(next_obs)                # (B, A)
-            # Apply hard mask (broadcast across batch).
-            target_q[:, ~self.hard_mask] = float("-inf")
-            # Apply soft mask for next state.
-            target_q += next_soft                                # logit bias
-            max_next_q = target_q.max(dim=1, keepdim=True).values   # (B, 1)
+            max_next_q = target_q.gather(1, best_actions)       # (B, 1)
             target = reward + self.gamma * max_next_q * (1.0 - done)
 
         loss = self.loss_fn(q_sa, target)
